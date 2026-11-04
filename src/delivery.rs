@@ -4,7 +4,7 @@ use crate::{
 };
 use hickory_resolver::{
     TokioResolver,
-    net::{NetError, error::DnsError},
+    net::{DnsError, NetError},
     proto::{
         op::ResponseCode,
         rr::{RData, Record},
@@ -76,12 +76,12 @@ fn mx_destinations(records: &[Record]) -> Result<Vec<(u16, String)>, Failure> {
     let mut destinations = Vec::new();
     for record in records {
         if let RData::MX(mx) = &record.data {
-            if mx.exchange().is_root() {
+            if mx.exchange.is_root() {
                 return Err(permanent("domain_rejects_mail"));
             }
             destinations.push((
-                mx.preference(),
-                mx.exchange().to_utf8().trim_end_matches('.').to_owned(),
+                mx.preference,
+                mx.exchange.to_utf8().trim_end_matches('.').to_owned(),
             ));
         }
     }
