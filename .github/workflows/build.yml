@@ -11,9 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: rustup toolchain install 1.96.0 --profile minimal
-      - name: Resolve initial lockfile
-        if: hashFiles('Cargo.lock') == ''
-        run: cargo +1.96.0 generate-lockfile
       - run: cargo +1.96.0 build --release --locked
       - run: |
           mkdir -p dist

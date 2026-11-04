@@ -91,11 +91,10 @@ impl Queue {
     ) -> Result<T> {
         let connection = self.connection.clone();
         tokio::task::spawn_blocking(move || {
-            action(
-                &mut connection
-                    .lock()
-                    .map_err(|_| anyhow::anyhow!("Queue lock poisoned"))?,
-            )
+            let mut connection = connection
+                .lock()
+                .map_err(|_| anyhow::anyhow!("Queue lock poisoned"))?;
+            action(&mut connection)
         })
         .await?
     }

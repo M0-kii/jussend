@@ -4,7 +4,8 @@ use crate::{
 };
 use hickory_resolver::{TokioAsyncResolver, error::ResolveErrorKind, proto::op::ResponseCode};
 use lettre::{
-    Address, Envelope,
+    Address,
+    address::Envelope,
     transport::smtp::{
         client::{AsyncSmtpConnection, TlsParameters},
         extension::ClientId,
