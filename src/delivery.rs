@@ -2,7 +2,14 @@ use crate::{
     config::Config,
     queue::{Job, Queue, now},
 };
-use hickory_resolver::{TokioAsyncResolver, error::ResolveErrorKind, proto::op::ResponseCode};
+use hickory_resolver::{
+    TokioResolver,
+    net::{NetError, error::DnsError},
+    proto::{
+        op::ResponseCode,
+        rr::{RData, Record},
+    },
+};
 use lettre::{
     Address,
     address::Envelope,
@@ -65,38 +72,36 @@ pub fn public_ip(ip: IpAddr) -> bool {
     }
 }
 
-async fn send(config: &Config, resolver: &TokioAsyncResolver, job: &Job) -> Result<(), Failure> {
+fn mx_destinations(records: &[Record]) -> Result<Vec<(u16, String)>, Failure> {
+    let mut destinations = Vec::new();
+    for record in records {
+        if let RData::MX(mx) = &record.data {
+            if mx.exchange().is_root() {
+                return Err(permanent("domain_rejects_mail"));
+            }
+            destinations.push((
+                mx.preference(),
+                mx.exchange().to_utf8().trim_end_matches('.').to_owned(),
+            ));
+        }
+    }
+    Ok(destinations)
+}
+
+async fn send(config: &Config, resolver: &TokioResolver, job: &Job) -> Result<(), Failure> {
     let recipient: Address = job
         .recipient
         .parse()
         .map_err(|_| permanent("invalid_recipient"))?;
     let domain = recipient.domain();
     let mut mx = match resolver.mx_lookup(domain).await {
-        Ok(records) => {
-            if records.iter().any(|record| record.exchange().is_root()) {
-                return Err(permanent("domain_rejects_mail"));
-            }
-            records
-                .iter()
-                .map(|record| {
-                    (
-                        record.preference(),
-                        record.exchange().to_utf8().trim_end_matches('.').to_owned(),
-                    )
-                })
-                .collect::<Vec<_>>()
-        }
-        Err(error) => match error.kind() {
-            ResolveErrorKind::NoRecordsFound {
-                response_code: ResponseCode::NXDomain,
-                ..
-            } => return Err(permanent("domain_not_found")),
-            ResolveErrorKind::NoRecordsFound {
-                response_code: ResponseCode::NoError,
-                ..
-            } => vec![(0, domain.to_owned())],
+        Ok(records) => mx_destinations(records.answers())?,
+        Err(NetError::Dns(DnsError::NoRecordsFound(records))) => match records.response_code {
+            ResponseCode::NXDomain => return Err(permanent("domain_not_found")),
+            ResponseCode::NoError => vec![(0, domain.to_owned())],
             _ => return Err(temporary("dns_unavailable")),
         },
+        Err(_) => return Err(temporary("dns_unavailable")),
     };
     mx.sort_by_key(|(priority, _)| *priority);
     let hello = ClientId::Domain(config.helo.clone());
@@ -151,7 +156,7 @@ pub async fn worker(
     queue: Queue,
     mut stop: watch::Receiver<bool>,
 ) -> anyhow::Result<()> {
-    let resolver = TokioAsyncResolver::tokio_from_system_conf()?;
+    let resolver = TokioResolver::builder_tokio()?.build()?;
     while !*stop.borrow() {
         if let Some(job) = queue.claim().await? {
             let remaining = job.expires_at.saturating_sub(now());
@@ -175,6 +180,32 @@ pub async fn worker(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hickory_resolver::proto::rr::{
+        Name,
+        rdata::{CNAME, MX},
+    };
+
+    #[test]
+    fn mx_answers_ignore_aliases_and_honor_null_mx() {
+        let domain = Name::from_ascii("example.com.").unwrap();
+        let mx = Record::from_rdata(
+            domain.clone(),
+            60,
+            RData::MX(MX::new(10, Name::from_ascii("mail.example.com.").unwrap())),
+        );
+        let alias = Record::from_rdata(domain.clone(), 60, RData::CNAME(CNAME(domain.clone())));
+        let destinations = mx_destinations(&[alias, mx]).unwrap_or_else(|_| panic!("valid MX"));
+        assert_eq!(destinations, vec![(10, "mail.example.com".to_owned())]);
+        let null = Record::from_rdata(domain, 60, RData::MX(MX::new(0, Name::root())));
+        assert!(matches!(
+            mx_destinations(&[null]),
+            Err(Failure {
+                code: "domain_rejects_mail",
+                permanent: true
+            })
+        ));
+    }
+
     #[test]
     fn prevents_private_and_special_destinations() {
         for address in [
