@@ -15,6 +15,10 @@ On jussend’s side, use the same key, `JUSSEND_APP_URL=https://riscord.ir`, a s
 
 Riscord submits `verify_email` links with its existing 24-hour expiry and `reset_password` links with the existing one-hour expiry. Its user/account rate limits and non-enumerating reset response remain in place. It derives the idempotency key from the purpose and the already-hashed token, and reuses it for an uncertain submission retry.
 
+Verification submissions also carry `code` and `code_expires_at`. Riscord generates and checks the code, stores only its account/challenge-bound MAC, limits guesses, and atomically consumes link and code together. Codes expire after ten minutes; the link keeps its 24-hour lifetime. jussend only renders the supplied code and delivers it. Old submissions without code fields remain valid.
+
+For Riscord artwork, set `JUSSEND_MASCOT_PATH=/etc/jussend/mascot.png`. Use the PNG exported from Riscord’s shared brand source, with root ownership and group read access for jussend. The image is embedded in the email; recipients do not need to load it from the website.
+
 When `JUSSEND_URL` is configured, Riscord uses jussend exclusively. A delivery error does not silently switch providers and risk a duplicate email. Without `JUSSEND_URL`, the existing Resend configuration remains available for rollback.
 
 Before enabling it for users:

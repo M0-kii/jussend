@@ -9,6 +9,7 @@ One binary. A SQLite queue. Runs on your own server.
 ## What’s in the box
 
 - Plain-text and HTML emails for email verification and password resets.
+- A responsive dark email layout, with an optional embedded mascot PNG.
 - A persistent queue, so a restart doesn’t throw away accepted requests.
 - Idempotency keys for safe submission retries.
 - Bounded retries, backoff, expiry, and a status endpoint.
@@ -29,6 +30,8 @@ openssl rand -hex 32
 ```
 
 Put the generated value in `JUSSEND_API_KEY`, then fill in the rest of `.env`. Keep that file private.
+
+Want your mascot in there? Set `JUSSEND_MASCOT_PATH` to a local PNG, up to 64 KiB. jussend loads it at startup and embeds it in each email, so it works without remote image loading. Keep the artwork readable by the service account. Leave the setting empty to use the text header alone.
 
 Generate an RSA key for DKIM:
 
@@ -87,6 +90,8 @@ curl http://127.0.0.1:3025/v1/emails \
 ```
 
 The two kinds are `verify_email` and `reset_password`. `expires_at` is a Unix timestamp between 30 seconds and roughly 24 hours from submission. Set it to the actual expiry of the token your app created. Your app still owns token generation, validation, and one-time use.
+
+Verification emails can also include `"code": "012345"` and `"code_expires_at": 1900000000`. Supply both fields together, use exactly six digits, and set the code’s expiry between 30 seconds and ten minutes from submission, no later than the link expiry. The code appears in both HTML and plain text. Your app must generate, securely store and validate it, limit guesses, and consume the link and code together. jussend is only the sender. Reset emails do not accept code fields.
 
 The action URL must use the configured `JUSSEND_APP_URL` origin, including the scheme and port. You can’t change the sender or submit arbitrary HTML through this endpoint.
 

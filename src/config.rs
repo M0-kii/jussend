@@ -7,7 +7,7 @@ use lettre::{
     },
 };
 use sha2::{Digest, Sha256};
-use std::{env, net::SocketAddr, path::PathBuf};
+use std::{env, io::Read, net::SocketAddr, path::PathBuf};
 use url::Url;
 
 pub struct Config {
@@ -20,6 +20,7 @@ pub struct Config {
     pub helo: String,
     pub dkim: DkimConfig,
     pub db: PathBuf,
+    pub mascot: Option<Vec<u8>>,
 }
 
 fn required(name: &str) -> Result<String> {
@@ -104,6 +105,21 @@ impl Config {
             .context("Could not read DKIM key")?;
         let signing_key = DkimSigningKey::new(&pem, DkimSigningAlgorithm::Rsa)
             .map_err(|_| anyhow::anyhow!("Invalid RSA DKIM private key"))?;
+        let mascot = env::var_os("JUSSEND_MASCOT_PATH")
+            .filter(|path| !path.is_empty())
+            .map(|path| -> Result<Vec<u8>> {
+                let mut bytes = Vec::new();
+                std::fs::File::open(path)?
+                    .take(64 * 1024 + 1)
+                    .read_to_end(&mut bytes)?;
+                ensure!(
+                    bytes.len() <= 64 * 1024 && bytes.starts_with(b"\x89PNG\r\n\x1a\n"),
+                    "Mascot must be a PNG no larger than 64 KiB"
+                );
+                Ok(bytes)
+            })
+            .transpose()
+            .context("Could not load mascot artwork")?;
         Ok(Self {
             bind,
             api_key_hash: Sha256::digest(key.as_bytes()).into(),
@@ -117,6 +133,7 @@ impl Config {
             app_name,
             app_url,
             helo,
+            mascot,
             db: env::var_os("JUSSEND_DB")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| "data/queue.sqlite3".into()),

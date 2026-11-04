@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{action} · {app}</title>
+  <style>@media only screen and (max-width:480px) {{ .email-shell {{ padding:16px 8px !important; }} .email-copy {{ padding-left:24px !important; padding-right:24px !important; }} }}</style>
+</head>
+<body style="margin:0;padding:0;background:#17181d;color:#f7f6fb;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0">{action}. A quick step, then back to your people.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17181d">
+    <tr><td class="email-shell" align="center" style="padding:40px 16px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:520px;border:1px solid #41414c;border-radius:24px;overflow:hidden;background:#27282f">
+        <tr><td align="center" style="padding:32px 24px 28px;background:#b7a5f5;border-radius:23px 23px 0 0;color:#22232b">
+          {artwork}
+          <p style="margin:0;font-size:20px;font-weight:800;letter-spacing:-0.5px">{app}</p>
+          <p style="margin:7px 0 0;font-size:12px;letter-spacing:0.3px">Good times. Great company.</p>
+        </td></tr>
+        <tr><td class="email-copy" style="padding:32px 32px 26px">
+          <h1 style="margin:0 0 14px;font-size:32px;line-height:1.1;letter-spacing:-1px;color:#ffffff">{title}</h1>
+          <p style="margin:0;color:#ceccd8;font-size:15px;line-height:1.7">{intro}</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 0"><tr><td bgcolor="#f6f5fa" style="border-radius:12px">
+            <a href="{url}" style="display:inline-block;padding:16px 24px;border:1px solid #f6f5fa;border-radius:12px;color:#22232b;text-decoration:none;font-size:14px;font-weight:700;line-height:1.2">{action} &nbsp;→</a>
+          </td></tr></table>
+        </td></tr>
+        {code_section}
+        <tr><td class="email-copy" style="padding:0 32px 30px">
+          <p style="margin:0 0 18px;color:#b5b2c2;font-size:12px;line-height:1.7">Didn’t ask for this? You can leave this email alone. Nothing changes unless you use the link or code.</p>
+          <p style="margin:0;color:#b5b2c2;font-size:11px;line-height:1.7">Button not opening? Copy this link:</p>
+          <p style="margin:6px 0 0;font-size:11px;line-height:1.8;word-break:break-all;overflow-wrap:anywhere"><a href="{url}" style="color:#adcbff;text-decoration:underline">{url}</a></p>
+        </td></tr>
+      </table>
+      <p style="margin:22px 0 0;font-size:11px;line-height:1.7;color:#aaa7b8">A little note from <a href="{origin}" style="color:#cbc6db;text-decoration:underline">{app}</a>.</p>
+    </td></tr>
+  </table>
+</body>
+</html>
