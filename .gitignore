@@ -1,0 +1,9 @@
+/target/
+/data/
+.env
+*.key
+*.pem
+*.sqlite3*
+*.lock-wal
+*.lock-shm
+

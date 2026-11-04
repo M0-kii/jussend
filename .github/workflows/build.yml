@@ -1,0 +1,31 @@
+name: Build jussend
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v6
+      - run: rustup toolchain install 1.96.0 --profile minimal
+      - name: Resolve initial lockfile
+        if: hashFiles('Cargo.lock') == ''
+        run: cargo +1.96.0 generate-lockfile
+      - run: cargo +1.96.0 build --release --locked
+      - run: |
+          mkdir -p dist
+          cp target/release/jussend LICENSE README.md dist/
+          cd dist
+          sha256sum jussend > SHA256SUMS
+          tar -czf ../jussend-linux-x64.tar.gz jussend LICENSE README.md SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: jussend-linux-x64
+          path: |
+            jussend-linux-x64.tar.gz
+            Cargo.lock
+          if-no-files-found: error
+          retention-days: 30
