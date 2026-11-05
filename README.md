@@ -128,6 +128,8 @@ curl http://127.0.0.1:3025/v1/emails/EMAIL_ID \
 
 **`accepted` means SMTP acceptance, not confirmed inbox delivery.** There are up to eight attempts, with backoff starting at 30 seconds and capped at 30 minutes. Messages aren’t sent after their action link expires. A stable Message-ID is kept across retries.
 
+Mail going to spam? Start with the [Gmail delivery guide](docs/deliverability.md). Authentication and SMTP acceptance don't guarantee Inbox placement.
+
 Like other queued senders, a crash after SMTP acceptance but before the local receipt is saved can cause a duplicate. Submission deduplication doesn’t turn SMTP into exactly-once delivery.
 
 ## Leave it running
